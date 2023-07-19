@@ -6,5 +6,6 @@ data class RegistrationUserRequest(
     val firstName: String,
     val lastName: String,
     val password: String,
-    val phoneNumber: String
+    val phoneNumber: String,
+    val privacyPolicyAccepted: Boolean
 )

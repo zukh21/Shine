@@ -15,26 +15,26 @@ class AppAuth @Inject constructor(@ApplicationContext context: Context) {
 
     val prefs = context.getSharedPreferences("Auth", Context.MODE_PRIVATE)
     private val _authStateFlow = MutableStateFlow<UserAuthState?>(null)
-    private val authoritiesKey: String = ""
-    private val jwtTokenKey: String = ""
-    private val messageKey: String = ""
+    private val idKey: String = "id_key"
+    private val jwtTokenKey: String = "token_key"
+    private val messageKey: String = "message_key"
     init {
-        val authorities = prefs.getString(authoritiesKey, null)
+        val id = prefs.getLong(idKey, 0L)
         val jwtToken = prefs.getString(jwtTokenKey, null)
         val message = prefs.getString(messageKey, null)
 
         if (jwtToken == null) {
             prefs.edit { clear() }
         } else {
-            _authStateFlow.value = UserAuthState(authorities ?: "", jwtToken, message ?: "")
+            _authStateFlow.value = UserAuthState(id, jwtToken, message ?: "")
         }
     }
     val authStateFlow: StateFlow<UserAuthState?> = _authStateFlow.asStateFlow()
     @Synchronized
-    fun setAuth(authorities: String? = null, jwtToken: String, message: String? = null) {
-        _authStateFlow.value = UserAuthState(authorities ?: "", jwtToken, message ?: "")
+    fun setAuth(id: Long, jwtToken: String, message: String? = null) {
+        _authStateFlow.value = UserAuthState(id, jwtToken, message ?: "")
         with(prefs.edit()) {
-            putString(authoritiesKey, authorities)
+            putLong(idKey, id)
             putString(jwtTokenKey, jwtToken)
             putString(messageKey, message)
             apply()

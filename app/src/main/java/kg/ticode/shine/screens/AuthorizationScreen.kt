@@ -1,10 +1,13 @@
 package kg.ticode.shine.screens
 
-import android.widget.Toast
+import android.app.Activity
+import android.content.Intent
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,9 +17,12 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -24,6 +30,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -45,19 +53,32 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.NavHostController
-import kg.profris.shine.R
+import kg.ticode.shine.MainActivity
+import kg.ticode.shine.R
+import kg.ticode.shine.model.AuthorizationUserRequestEmail
+import kg.ticode.shine.model.AuthorizationUserRequestPhone
 import kg.ticode.shine.navigation.ScreensRoute
 import kg.ticode.shine.ui.theme.Blue
 import kg.ticode.shine.ui.theme.Green
 import kg.ticode.shine.utils.CustomConstants
+import kg.ticode.shine.viewmodel.AuthViewModel
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
-fun AuthorizationScreen(navHostController: NavHostController) {
+fun AuthorizationScreen(
+    navHostController: NavHostController,
+    authViewModel: AuthViewModel,
+    lifecycleOwner: LifecycleOwner
+) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
-    val isError by remember {
+    var isLoading by remember {
+        mutableStateOf(false)
+    }
+    var phoneError by remember {
         mutableStateOf(false)
     }
     val errorText by remember {
@@ -66,14 +87,54 @@ fun AuthorizationScreen(navHostController: NavHostController) {
     var phoneNumber by remember {
         mutableStateOf("")
     }
+    var phoneNumberSupportingText by remember {
+        mutableStateOf("")
+    }
+    var emailError by remember {
+        mutableStateOf(false)
+    }
     var email by remember {
         mutableStateOf("")
+    }
+    var emailSupportingText by remember {
+        mutableStateOf("")
+    }
+    var passwordError by remember {
+        mutableStateOf(false)
     }
     var password by remember {
         mutableStateOf("")
     }
+    var passwordSupportingText by remember {
+        mutableStateOf("")
+    }
     var passwordFocus by remember {
         mutableStateOf(false)
+    }
+    var to by remember {
+        mutableStateOf(false)
+    }
+    authViewModel.timeout.observe(lifecycleOwner) { timeout ->
+        if (timeout != null && timeout) {
+            isLoading = false
+            to = true
+            authViewModel.clearTimeoutException()
+        }
+    }
+    if (to) {
+        Box(
+            Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(), contentAlignment = Alignment.BottomCenter
+        ) {
+            Snackbar(modifier = Modifier.padding(12.dp)) {
+                Text(text = "Что-то пошло не так! Попробуйте ещё раз.")
+            }
+        }
+        LaunchedEffect(true) {
+            delay(3000)
+            to = false
+        }
     }
     Column(
         Modifier
@@ -119,15 +180,20 @@ fun AuthorizationScreen(navHostController: NavHostController) {
                 keyboardActions = KeyboardActions(onNext = {
                     focusManager.moveFocus(FocusDirection.Down)
                 }),
-                isError = isError,
+                isError = phoneError,
                 supportingText = {
-                    if (isError) {
-                        Text(text = errorText)
+                    if (phoneError) {
+                        Text(text = phoneNumberSupportingText)
                     }
                 },
                 modifier = Modifier
                     .padding(vertical = 5.dp)
                     .fillMaxWidth()
+                    .onFocusChanged {
+                        if (it.hasFocus) {
+                            phoneError = false
+                        }
+                    }
             )
         } else {
             TextField(
@@ -159,22 +225,32 @@ fun AuthorizationScreen(navHostController: NavHostController) {
                 keyboardActions = KeyboardActions(onNext = {
                     focusManager.moveFocus(FocusDirection.Down)
                 }),
-                isError = isError,
+                isError = emailError,
                 supportingText = {
-                    if (isError) {
-                        Text(text = errorText)
+                    if (emailError) {
+                        Text(text = emailSupportingText)
                     }
                 },
                 modifier = Modifier
                     .padding(vertical = 5.dp)
                     .fillMaxWidth()
+                    .onFocusChanged {
+                        if (it.hasFocus) {
+                            emailError = false
+                        }
+                    }
             )
         }
         var passwordVisible by remember {
             mutableStateOf(false)
         }
         TextField(value = password,
-            onValueChange = { password = it },
+            onValueChange = {
+                password = it
+                if (password.isNotBlank()) {
+                    passwordError = false
+                }
+            },
             label = {
                 Text(text = stringResource(id = R.string.password))
             },
@@ -225,16 +301,21 @@ fun AuthorizationScreen(navHostController: NavHostController) {
             keyboardActions = KeyboardActions(onNext = {
                 focusManager.moveFocus(FocusDirection.Exit)
             }),
-            isError = isError,
+            isError = passwordError,
             supportingText = {
-                if (isError) {
-                    Text(text = errorText)
+                if (passwordError) {
+                    Text(text = passwordSupportingText)
                 }
             },
             modifier = Modifier
                 .padding(vertical = 5.dp)
                 .onFocusEvent {
                     passwordFocus = it.isFocused
+
+                    if (it.hasFocus) {
+                        passwordError = false
+                    }
+
                 }
                 .fillMaxWidth())
         Row(
@@ -282,17 +363,106 @@ fun AuthorizationScreen(navHostController: NavHostController) {
             Box {
                 Button(
                     onClick = {
-                        Toast.makeText(context, "Click", Toast.LENGTH_SHORT).show()
-                        TODO("here write code to authorization")
+                        isLoading = true
+                        println("isLoading: $isLoading")
+                        if (phoneNumber.isNotBlank() && password.isNotBlank() || email.isNotBlank() && password.isNotBlank()) {
+                            isLoading = true
+                            if (isPhone) {
+                                isLoading = true
+                                val user = AuthorizationUserRequestPhone(
+                                    password, phoneNumber
+                                )
+                                authViewModel.authorizationWithPhone(user)
+                                authViewModel.responseIsSuccess.observe(lifecycleOwner) { isSuccess ->
+                                    if (isSuccess) {
+                                        val activity = context as Activity
+                                        activity.startActivity(
+                                            Intent(
+                                                context,
+                                                MainActivity::class.java
+                                            )
+                                        )
+                                        activity.finish()
+                                    } else {
+                                        authViewModel.errorBody.observe(lifecycleOwner) {
+                                            phoneNumberSupportingText = it
+                                        }
+                                    }
+                                    phoneError = !isSuccess
+                                    isLoading = isSuccess
+                                }
+                            } else {
+                                isLoading = true
+                                val user = AuthorizationUserRequestEmail(
+                                    email, password
+                                )
+                                authViewModel.authorizationWithEmail(user)
+                                authViewModel.responseIsSuccess.observe(lifecycleOwner) { isSuccess ->
+                                    if (isSuccess) {
+                                        val activity = context as Activity
+                                        activity.startActivity(
+                                            Intent(
+                                                context,
+                                                MainActivity::class.java
+                                            )
+                                        )
+                                        activity.finish()
+                                    } else {
+                                        authViewModel.errorBody.observe(lifecycleOwner){
+                                            emailSupportingText = it
+                                        }
+                                    }
+                                    emailError = !isSuccess
+                                    isLoading = isSuccess
+                                }
+                            }
+                        } else {
+                            isLoading = false
+                            if (isPhone) {
+                                if (phoneNumber.isBlank()) {
+                                    phoneError = true
+                                    phoneNumberSupportingText =
+                                        "Номер телефона должен быть заполнен!"
+                                } else {
+                                    phoneError = false
+                                }
+
+                            } else {
+                                if (email.isBlank()) {
+                                    emailError = true
+                                    emailSupportingText = "Эл.почта должна быть заполнена!"
+                                } else {
+                                    emailError = false
+                                }
+                            }
+                            if (password.isBlank()) {
+                                passwordError = true
+                                passwordSupportingText = "Пароль должен быть заполнен!"
+                            } else {
+                                passwordError = false
+                            }
+
+
+                        }
+                        println("isLoading: $isLoading")
                     },
                     shape = RoundedCornerShape(10),
-                    colors = ButtonDefaults.buttonColors(containerColor = Blue),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = stringResource(id = R.string.authorization).uppercase(),
-                        fontSize = 14.sp
-                    )
+                    if (!isLoading) {
+                        Text(
+                            text = stringResource(id = R.string.authorization).uppercase(),
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
                 }
             }
             Box {
@@ -302,13 +472,13 @@ fun AuthorizationScreen(navHostController: NavHostController) {
                         fontSize = 14.sp
                     )
                     TextButton(modifier = Modifier.padding(start = 8.dp), onClick = {
-                        navHostController.navigate(ScreensRoute.RegistrationScreen.route){
+                        navHostController.navigate(ScreensRoute.RegistrationScreen.route) {
                             popUpTo(ScreensRoute.MainScreen.route)
                         }
                     }) {
                         Text(
                             text = stringResource(id = R.string.registration),
-                            color = Green,
+                            color = Blue,
                             fontSize = 14.sp
                         )
                     }
@@ -317,5 +487,15 @@ fun AuthorizationScreen(navHostController: NavHostController) {
         }
 
 
+    }
+    BackHandler {
+        val activity = context as Activity
+        activity.startActivity(
+            Intent(
+                context,
+                MainActivity::class.java
+            )
+        )
+        activity.finish()
     }
 }

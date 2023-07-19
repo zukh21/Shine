@@ -17,15 +17,17 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Color.White,
-    secondary = PrimaryColor,
-    tertiary = Pink80,
+    primary = PrimaryColor,
+    secondary = Color.White,
+    tertiary = Color.Black,
+    onPrimary = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = PrimaryColor,
     secondary = Color.White,
-    tertiary = Pink40
+    tertiary = Color.Black,
+    onPrimary = Color.White
 
     /* Other default colors to override
     background = Color(0xFFFFFBFE),
@@ -58,7 +60,7 @@ fun ShineTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
+            window.statusBarColor = PrimaryColor.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
         }
     }

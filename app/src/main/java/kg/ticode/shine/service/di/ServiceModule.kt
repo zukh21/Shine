@@ -1,10 +1,12 @@
 package kg.ticode.shine.service.di
 
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import kg.profris.shine.BuildConfig
+import kg.ticode.shine.BuildConfig
 import kg.ticode.shine.service.AuthService
 import kg.ticode.shine.utils.AppAuth
 import okhttp3.OkHttpClient
@@ -44,10 +46,14 @@ object ServiceModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(httpClient: OkHttpClient): Retrofit =
-        Retrofit.Builder().baseUrl(BuildConfig.BASE_URL).client(httpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+    fun provideRetrofit(httpClient: OkHttpClient): Retrofit {
+        val gsonBuilder = GsonBuilder()
+        gsonBuilder.setLenient()
+        val gson: Gson = gsonBuilder.create()
+        return Retrofit.Builder().baseUrl(BuildConfig.BASE_URL).client(httpClient)
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
+    }
 
     @Provides
     @Singleton

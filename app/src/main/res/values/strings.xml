@@ -1,15 +1,22 @@
 <resources>
     <string name="app_name">Shine</string>
     <string name="registration">Registration</string>
+    <string name="email_exists_error">Such an email exists,, please write new or reload!</string>
+    <string name="phone_number_exists_error">Such a phone number exists, please write new or reload!</string>
     <string name="authorization">Authorization</string>
     <string name="phone_number_verification">Phone number verification</string>
     <string name="already_have_an_account">Already have an account?</string>
     <string name="do_not_have_an_account">Don\'t have an account?</string>
+    <string name="confirm">Confirm</string>
+    <string name="resend_code">Resend code</string>
     <string name="first_name">First name</string>
     <string name="last_name">Last name</string>
     <string name="phone_number">Phone number</string>
+    <string name="change">Change</string>
+    <string name="dialog_title_change_phone_number">Change phone number</string>
     <string name="email">Email</string>
     <string name="age">Age</string>
     <string name="password">Password</string>
     <string name="profile">Profile</string>
+    <string name="enter_verify_code_text">"Please enter the verification code received by Whatsapp sms, If you did not receive the verification code</string>
 </resources>

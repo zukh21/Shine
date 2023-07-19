@@ -20,6 +20,11 @@
             android:exported="false"
             android:theme="@style/Theme.Shine"/>
         <activity
+            android:name="kg.ticode.shine.AuthActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Shine"/>
+
+        <activity
             android:name="kg.ticode.shine.SplashScreenActivity"
             android:exported="true"
             android:theme="@style/Theme.Shine">

@@ -3,15 +3,16 @@ plugins {
     id 'org.jetbrains.kotlin.android'
     id 'org.jetbrains.kotlin.kapt'
     id 'com.google.dagger.hilt.android'
+    id 'com.google.gms.google-services'
 
 }
 
 android {
-    namespace 'kg.profris.shine'
+    namespace 'kg.ticode.shine'
     compileSdk 33
 
     defaultConfig {
-        applicationId "kg.profris.shine"
+        applicationId "kg.ticode.shine"
         minSdk 24
         targetSdk 33
         versionCode 1
@@ -25,13 +26,13 @@ android {
 
     buildTypes {
         release {
-            buildConfigField "String", "BASE_URL", '"https://shine-shine-production.up.railway.app/api/"'
+            buildConfigField "String", "BASE_URL", '"https://shine-x88d.onrender.com/api/"'
             manifestPlaceholders.usesCleartextTraffic = false
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
-            buildConfigField "String", "BASE_URL", '"https://shine-shine-production.up.railway.app/api/"'
+            buildConfigField "String", "BASE_URL", '"https://shine-x88d.onrender.com/api/"'
             manifestPlaceholders.usesCleartextTraffic = true
         }
     }
@@ -73,9 +74,10 @@ dependencies {
     implementation "com.squareup.retrofit2:retrofit:$retrofit_version"
     implementation "com.squareup.retrofit2:converter-gson:$retrofit_version"
     implementation 'com.squareup.okhttp3:logging-interceptor:4.11.0'
-
+    implementation("io.coil-kt:coil-compose:2.2.2")
     // dagger hilt
     implementation "com.google.dagger:hilt-android:2.44.2"
+    implementation 'com.google.firebase:firebase-auth-ktx:21.1.0'
     kapt "com.google.dagger:hilt-android-compiler:2.44.2"
     implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
     testImplementation 'junit:junit:4.13.2'
