@@ -8,6 +8,9 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kg.ticode.shine.BuildConfig
 import kg.ticode.shine.service.AuthService
+import kg.ticode.shine.service.CarService
+import kg.ticode.shine.service.MediaService
+import kg.ticode.shine.service.UserService
 import kg.ticode.shine.utils.AppAuth
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -36,6 +39,8 @@ object ServiceModule {
     ): OkHttpClient =
         OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
             .addInterceptor(httpLoggingInterceptor)
             .addInterceptor { chain ->
                 val request = appAuth.authStateFlow.value?.jwtToken?.let {
@@ -58,4 +63,16 @@ object ServiceModule {
     @Provides
     @Singleton
     fun provideAuthService(retrofit: Retrofit): AuthService = retrofit.create()
+
+    @Provides
+    @Singleton
+    fun provideCarService(retrofit: Retrofit): CarService =  retrofit.create()
+
+    @Provides
+    @Singleton
+    fun provideMediaService(retrofit: Retrofit): MediaService =  retrofit.create()
+
+    @Provides
+    @Singleton
+    fun provideUserService(retrofit: Retrofit): UserService =  retrofit.create()
 }

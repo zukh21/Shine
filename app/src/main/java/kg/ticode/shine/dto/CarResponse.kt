@@ -1,32 +1,38 @@
 package kg.ticode.shine.dto
 
-import kg.ticode.shine.enums.CarsCategory
+import kg.ticode.shine.enums.CarBodyType
+import kg.ticode.shine.enums.CarCategory
+import kg.ticode.shine.enums.CarColor
+import kg.ticode.shine.enums.CarEngineType
+import kg.ticode.shine.enums.CarTransmissionType
+import kg.ticode.shine.enums.CarYearOfIssue
 import kg.ticode.shine.enums.CarsStatus
 import kg.ticode.shine.enums.Cities
+import kg.ticode.shine.enums.Currency
+import kg.ticode.shine.enums.DriveUnitType
+import kg.ticode.shine.enums.ExchangeType
+import kg.ticode.shine.enums.SteeringWheel
+import kg.ticode.shine.presentation.CarCreateFormEvent
 
 data class CarResponse(
-    val accounting: String,
-    val availability: String,
-    val body: String,
+    val body: CarBodyType,
     val brand: String,
     val carsStatus: CarsStatus,
-    val category: CarsCategory,
-    val city: Cities,
-    val color: String,
-    val condition: String,
-    val customs: String,
-    val dateOfCreated: String,
+    val category: CarCategory?,
+    val city: Cities?,
+    val color: CarColor,
     val description: String,
-    val driveUnit: String,
-    val engine: String,
-    val exchange: String,
+    val driveUnit: DriveUnitType,
+    val currency: Currency?,
+    val engine: CarEngineType,
+    val engineCapacity: String,
     val id: Long,
-    val image: String,
+    val images: List<String>,
     val mileage: String,
     val model: String,
     val price: Double,
-    val regionCityOfSale: String,
-    val steeringWheel: String,
-    val transmission: String,
-    val yearOfIssue: Int
+    val steeringWheel: SteeringWheel,
+    val favorites: Boolean = false,
+    val transmission: CarTransmissionType,
+    val yearOfIssue: CarYearOfIssue?
 )

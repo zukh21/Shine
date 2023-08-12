@@ -4,9 +4,12 @@ import kg.ticode.shine.dto.UserDto
 import kg.ticode.shine.model.AuthorizationUserRequestEmail
 import kg.ticode.shine.model.AuthorizationUserRequestPhone
 import kg.ticode.shine.model.AuthorizationUserResponse
+import kg.ticode.shine.model.MediaResponseModel
 import kg.ticode.shine.model.RegistrationUserRequest
 import kg.ticode.shine.model.RegistrationUserResponse
+import kg.ticode.shine.model.UserUpdateDto
 import retrofit2.Response
+import java.io.File
 
 interface AuthRepository {
     suspend fun userRegistration(
@@ -18,6 +21,4 @@ interface AuthRepository {
     ): Response<AuthorizationUserResponse>
 
     suspend fun userAuthorizationEmail(authorizationUserRequestEmail: AuthorizationUserRequestEmail): Response<AuthorizationUserResponse>
-    suspend fun getUserById(userId: Long): Response<UserDto>
-    suspend fun selectLanguage(lang: String): Response<String>
 }

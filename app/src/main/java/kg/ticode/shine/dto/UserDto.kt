@@ -7,5 +7,5 @@ data class UserDto(
     val email: String,
     val phoneNumber: String,
     val age: Int,
-    val avatar: String? = null
+    val avatarUrl: String? = null
 )

@@ -3,12 +3,12 @@ package kg.ticode.shine.screens
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarData
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -47,7 +46,6 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -64,15 +62,14 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.NavHostController
 import kg.ticode.shine.MainActivity
 import kg.ticode.shine.R
-import kg.ticode.shine.model.RegistrationUserRequest
+import kg.ticode.shine.domain.use_case.ApiResult
 import kg.ticode.shine.navigation.ScreensRoute
+import kg.ticode.shine.presentation.RegistrationFormEvent
 import kg.ticode.shine.ui.theme.Blue
 import kg.ticode.shine.utils.CustomConstants
-import kg.ticode.shine.utils.CustomToast
+import kg.ticode.shine.utils.CustomConstants.CIRCULAR_PROGRESS_SIZE
+import kg.ticode.shine.utils.CustomConstants.REGISTRATION_TEXT_FIELDS_ERROR_SIZE
 import kg.ticode.shine.viewmodel.AuthViewModel
-import kg.ticode.shine.viewmodel.ScreensViewModel
-import kotlinx.coroutines.delay
-import okhttp3.internal.notify
 
 @SuppressLint("UnrememberedAnimatable")
 @OptIn(
@@ -81,7 +78,6 @@ import okhttp3.internal.notify
 @Composable
 fun RegistrationScreen(
     navController: NavHostController,
-    viewModel: ScreensViewModel,
     authViewModel: AuthViewModel,
     lifecycleOwner: LifecycleOwner
 ) {
@@ -89,34 +85,48 @@ fun RegistrationScreen(
 
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
-    val configuration = LocalConfiguration.current
-    val displayHeight = configuration.screenHeightDp
+    val state = authViewModel.state
     var animated by remember {
         mutableStateOf(false)
     }
-    var firstName by rememberSaveable {
-        mutableStateOf("")
-    }
-    var lastName by rememberSaveable {
-        mutableStateOf("")
-    }
-    var phoneNumber by rememberSaveable {
-        mutableStateOf("")
-    }
-    var email by rememberSaveable {
-        mutableStateOf("")
-    }
-    var age by rememberSaveable {
-        mutableStateOf("")
-    }
-    var password by rememberSaveable {
-        mutableStateOf("")
-    }
+
     var passwordFocus by rememberSaveable {
         mutableStateOf(false)
     }
+    var timeoutError by remember {
+        mutableStateOf(false)
+    }
     val scrollState = rememberScrollState()
+    LaunchedEffect(key1 = context) {
+        authViewModel.validationEvents.collect { event ->
+            when (event) {
+                ApiResult.Success -> {
+                    authViewModel.state = authViewModel.state.copy(
+                        firstNameError = null,
+                        lastNameError = null,
+                        phoneNumberError = null,
+                        emailError = null,
+                        ageError = null,
+                        passwordError = null
+                    )
+                    navController.navigate(ScreensRoute.ProfileScreen.route){
+                        popUpTo(0)
+                    }
+                }
 
+                ApiResult.Error -> {
+                    animated = false
+                }
+
+                ApiResult.Timeout -> {
+                    animated = false
+                    timeoutError = true
+                }
+
+                ApiResult.Loading -> Unit
+            }
+        }
+    }
     Column(
         Modifier
             .padding(24.dp)
@@ -125,26 +135,18 @@ fun RegistrationScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        var to by remember {
-            mutableStateOf(false)
-        }
-        authViewModel.timeout.observe(lifecycleOwner) { timeout ->
-            if (timeout != null && timeout) {
-                animated = false
-                to = true
-                authViewModel.clearTimeoutException()
-            }
-        }
-        if (to){
-            Box(Modifier.fillMaxHeight().fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+        if (timeoutError) {
+            Box(
+                Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.BottomCenter
+            ) {
                 Snackbar(modifier = Modifier.padding(12.dp)) {
                     Text(text = "Что-то пошло не так! Попробуйте ещё раз.")
                 }
             }
-            LaunchedEffect(true){
-                delay(3000)
-                to = false
-            }
+
         }
         Text(
             text = stringResource(id = R.string.registration),
@@ -152,15 +154,9 @@ fun RegistrationScreen(
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(vertical = 12.dp)
         )
-        var firstNameError by remember {
-            mutableStateOf(false)
-        }
-        var firstNameErrorText by remember {
-            mutableStateOf("")
-        }
         TextField(
-            value = firstName,
-            onValueChange = { firstName = it },
+            value = state.firstName,
+            onValueChange = { authViewModel.onEvent(RegistrationFormEvent.FirstNameChanged(it)) },
             label = {
                 Text(text = stringResource(id = R.string.first_name))
             },
@@ -176,7 +172,8 @@ fun RegistrationScreen(
             colors = TextFieldDefaults.textFieldColors(
                 disabledIndicatorColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
+                unfocusedIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent
             ),
             shape = RoundedCornerShape(CustomConstants.AUTH_TEXT_FIELDS_CORNER_ROUND),
             singleLine = true,
@@ -186,32 +183,24 @@ fun RegistrationScreen(
             keyboardActions = KeyboardActions(onNext = {
                 focusManager.moveFocus(FocusDirection.Down)
             }),
-            isError = firstNameError,
-            supportingText = {
-                if (firstNameError) {
-                    Text(text = firstNameErrorText)
-                }
-                if (firstName.isNotBlank()) {
-                    firstNameError = false
-                }
-            },
+            isError = state.firstNameError != null,
             modifier = Modifier
                 .padding(vertical = 5.dp)
                 .fillMaxWidth()
         )
-        var lastNameError by remember {
-            mutableStateOf(false)
-        }
-        var lastNameErrorText by remember {
-            mutableStateOf("")
+        if (state.firstNameError != null) {
+            Text(
+                text = state.firstNameError,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.fillMaxWidth(),
+                 fontSize = REGISTRATION_TEXT_FIELDS_ERROR_SIZE.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
         }
         TextField(
-            value = lastName,
+            value = state.lastName,
             onValueChange = {
-                lastName = it
-                if (lastName.isNotBlank()) {
-                    lastNameError = false
-                }
+                authViewModel.onEvent(RegistrationFormEvent.LastNameChanged(it))
             },
             label = {
                 Text(text = stringResource(id = R.string.last_name))
@@ -228,7 +217,8 @@ fun RegistrationScreen(
             colors = TextFieldDefaults.textFieldColors(
                 disabledIndicatorColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
+                unfocusedIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent
             ),
             shape = RoundedCornerShape(CustomConstants.AUTH_TEXT_FIELDS_CORNER_ROUND),
             singleLine = true,
@@ -238,36 +228,24 @@ fun RegistrationScreen(
             keyboardActions = KeyboardActions(onNext = {
                 focusManager.moveFocus(FocusDirection.Down)
             }),
-            isError = lastNameError,
-            supportingText = {
-                if (lastNameError) {
-                    Text(text = lastNameErrorText)
-                }
-            },
+            isError = state.lastNameError != null,
             modifier = Modifier
                 .padding(vertical = 5.dp)
                 .fillMaxWidth()
         )
-        var phoneError by remember {
-            mutableStateOf(false)
-        }
-        var phoneErrorText by remember {
-            mutableStateOf("")
+        if (state.lastNameError != null) {
+            Text(
+                text = state.lastNameError,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.fillMaxWidth(),
+                fontSize = REGISTRATION_TEXT_FIELDS_ERROR_SIZE.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
         }
         TextField(
-            value = phoneNumber,
+            value = state.phoneNumber,
             onValueChange = {
-                if (it.isDigitsOnly()) {
-                    if (phoneNumber.length > 16 || phoneNumber.length < 9) {
-                        phoneError = true
-                        animated = false
-                        phoneErrorText = "Номер телефона должен быть меньше 16" +
-                                " и больше 9"
-                    } else {
-                        phoneError = false
-                    }
-                    phoneNumber = it
-                }
+                authViewModel.onEvent(RegistrationFormEvent.PhoneNumberChanged(it))
             },
             label = {
                 Text(text = stringResource(id = R.string.phone_number))
@@ -284,7 +262,8 @@ fun RegistrationScreen(
             colors = TextFieldDefaults.textFieldColors(
                 disabledIndicatorColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
+                unfocusedIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent
             ),
             shape = RoundedCornerShape(CustomConstants.AUTH_TEXT_FIELDS_CORNER_ROUND),
             singleLine = true,
@@ -295,40 +274,27 @@ fun RegistrationScreen(
             keyboardActions = KeyboardActions(onNext = {
                 focusManager.moveFocus(FocusDirection.Down)
             }),
-            isError = phoneError,
-            supportingText = {
-                if (phoneError) {
-                    Text(text = phoneErrorText)
-                }
-            },
+            isError = state.phoneNumberError != null,
             modifier = Modifier
                 .padding(vertical = 5.dp)
                 .fillMaxWidth()
-                .onFocusChanged {
-                    if (it.isFocused) {
-                        phoneError = false
-                    }
-                }
         )
+        if (state.phoneNumberError != null) {
+            Text(
+                text = state.phoneNumberError,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.fillMaxWidth(),
+                fontSize = REGISTRATION_TEXT_FIELDS_ERROR_SIZE.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
         var emailHasFocus by remember {
             mutableStateOf(false)
         }
-        var emailError by remember {
-            mutableStateOf(false)
-        }
-        var emailErrorText by remember {
-            mutableStateOf("")
-        }
         TextField(
-            value = email,
+            value = state.email,
             onValueChange = {
-                email = it
-                emailError = "@" !in email
-                if (emailError) {
-                    animated = false
-                    emailErrorText = "Напишите правильная Эл.почта"
-                }
-
+                authViewModel.onEvent(RegistrationFormEvent.EmailChanged(it))
             },
             label = {
                 Text(text = stringResource(id = R.string.email))
@@ -352,7 +318,8 @@ fun RegistrationScreen(
             colors = TextFieldDefaults.textFieldColors(
                 disabledIndicatorColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
+                unfocusedIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent
             ),
             shape = RoundedCornerShape(CustomConstants.AUTH_TEXT_FIELDS_CORNER_ROUND),
             singleLine = true,
@@ -363,42 +330,33 @@ fun RegistrationScreen(
             keyboardActions = KeyboardActions(onNext = {
                 focusManager.moveFocus(FocusDirection.Down)
             }),
-            isError = emailError,
-            supportingText = {
-                if (emailError) {
-                    Text(text = emailErrorText)
-                }
-            },
+            isError = state.emailError != null,
             modifier = Modifier
                 .padding(vertical = 5.dp)
                 .fillMaxWidth()
                 .onFocusChanged {
                     if (it.hasFocus) {
-                        emailError = false
                         emailHasFocus = it.hasFocus
                     }
                 }
         )
-        var isAgeErrorValue by remember {
-            mutableStateOf("")
-        }
-        var isAgeError by remember {
-            mutableStateOf(false)
+        if (state.emailError != null) {
+            Text(
+                text = state.emailError,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.fillMaxWidth(),
+                fontSize = REGISTRATION_TEXT_FIELDS_ERROR_SIZE.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
         }
         TextField(
-            value = age,
+            value = if (state.age != 0) state.age.toString() else "",
             onValueChange = {
                 if (it.isDigitsOnly() && it.isNotBlank()) {
-                    age = it
-                    if (it.toInt() <= 150) {
-                        isAgeError = false
-                    } else {
-                        animated = false
-                        isAgeError = true
-                        isAgeErrorValue = "Max age is 150!"
-                    }
-                } else {
-                    age = ""
+                    authViewModel.onEvent(RegistrationFormEvent.AgeChanged(it.toInt()))
+                }
+                if (it.isBlank()) {
+                    authViewModel.onEvent(RegistrationFormEvent.AgeChanged(0))
                 }
             },
             label = {
@@ -408,8 +366,8 @@ fun RegistrationScreen(
                 Text(text = stringResource(id = R.string.age))
             },
             leadingIcon = {
-                if (age.isDigitsOnly() && age.isNotBlank()) {
-                    when (age.toInt()) {
+                if (state.age.toString().isNotBlank() && state.age != 0) {
+                    when (state.age) {
                         in 1..30 -> {
                             Icon(
                                 painter = painterResource(id = R.drawable.man_for_age),
@@ -442,7 +400,8 @@ fun RegistrationScreen(
             colors = TextFieldDefaults.textFieldColors(
                 disabledIndicatorColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
+                unfocusedIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent
             ),
             shape = RoundedCornerShape(CustomConstants.AUTH_TEXT_FIELDS_CORNER_ROUND),
             singleLine = true,
@@ -453,31 +412,26 @@ fun RegistrationScreen(
             keyboardActions = KeyboardActions(onNext = {
                 focusManager.moveFocus(FocusDirection.Down)
             }),
-            isError = isAgeError,
-            supportingText = {
-                if (isAgeError) {
-                    Text(text = isAgeErrorValue)
-                }
-            },
+            isError = state.ageError != null,
             modifier = Modifier
                 .padding(vertical = 5.dp)
                 .fillMaxWidth()
         )
+        if (state.ageError != null) {
+            Text(
+                text = state.ageError,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.fillMaxWidth(),
+                fontSize = REGISTRATION_TEXT_FIELDS_ERROR_SIZE.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
         var passwordVisible by remember {
             mutableStateOf(false)
         }
-        var passwordError by remember {
-            mutableStateOf(false)
-        }
-        var passwordErrorText by remember {
-            mutableStateOf("")
-        }
-        TextField(value = password,
+        TextField(value = state.password,
             onValueChange = {
-                password = it
-                if (password.isNotBlank()) {
-                    passwordError = false
-                }
+                authViewModel.onEvent(RegistrationFormEvent.PasswordChanged(it))
             },
             label = {
                 Text(text = stringResource(id = R.string.password))
@@ -519,7 +473,8 @@ fun RegistrationScreen(
             colors = TextFieldDefaults.textFieldColors(
                 disabledIndicatorColor = Color.Transparent,
                 focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
+                unfocusedIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent
             ),
             shape = RoundedCornerShape(CustomConstants.AUTH_TEXT_FIELDS_CORNER_ROUND),
             singleLine = true,
@@ -529,18 +484,23 @@ fun RegistrationScreen(
             keyboardActions = KeyboardActions(onNext = {
                 focusManager.moveFocus(FocusDirection.Exit)
             }),
-            isError = passwordError == password.length < 8,
-            supportingText = {
-                if (passwordError) {
-                    Text(text = passwordErrorText)
-                }
-            },
+            isError = state.passwordError != null,
             modifier = Modifier
                 .padding(vertical = 5.dp)
                 .onFocusEvent {
                     passwordFocus = it.isFocused
                 }
-                .fillMaxWidth())
+                .fillMaxWidth()
+        )
+        if (state.passwordError != null) {
+            Text(
+                text = state.passwordError,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.fillMaxWidth(),
+                fontSize = REGISTRATION_TEXT_FIELDS_ERROR_SIZE.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
 
         Column(
@@ -549,93 +509,11 @@ fun RegistrationScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box {
-                var ageIsDigit by remember {
-                    mutableStateOf(false)
-                }
-                if (age.isDigitsOnly() && age.isNotBlank()) {
-                    ageIsDigit = true
-                }
                 Box(contentAlignment = Alignment.CenterEnd, modifier = Modifier.fillMaxWidth()) {
                     Button(
                         onClick = {
-                            if (!firstNameError && !lastNameError && !phoneError && !emailError && !isAgeError && !passwordError) {
-                                if (firstName.isNotBlank() && lastName.isNotBlank()
-                                    && phoneNumber.isNotBlank() && email.isNotBlank()
-                                    && age.isNotBlank() && password.isNotBlank()
-                                    && phoneNumber.isNotBlank()
-                                ) {
-                                    animated = true
-                                    val user = RegistrationUserRequest(
-                                        age.toInt(),
-                                        email,
-                                        firstName,
-                                        lastName,
-                                        password,
-                                        phoneNumber,
-                                        true
-                                    )
-                                    authViewModel.registration(
-                                        (user)
-                                    )
-                                    authViewModel.responseIsSuccess.observe(lifecycleOwner) {
-                                        if (it) {
-                                            val activity = context as Activity
-                                            activity.startActivity(
-                                                Intent(
-                                                    context,
-                                                    MainActivity::class.java
-                                                )
-                                            )
-                                            activity.finish()
-                                        } else {
-                                            animated = false
-                                        }
-                                    }
-
-                                } else {
-                                    when {
-                                        firstName.isBlank() -> {
-                                            animated = false
-                                            firstNameError = true
-                                            firstNameErrorText = "Имя должно быть заполнено"
-                                        }
-
-                                        lastName.isBlank() -> {
-                                            animated = false
-                                            lastNameError = true
-                                            lastNameErrorText = "Фамилия должно быть заполнено"
-                                        }
-
-                                        age.isBlank() -> {
-                                            animated = false
-                                            isAgeError = true
-                                            isAgeErrorValue = "Возраст должен быть заполнено"
-                                        }
-
-                                        phoneNumber.isBlank() -> {
-                                            animated = false
-                                            phoneError = true
-                                            phoneErrorText =
-                                                "Номер телефона должен быть меньше 16 и больше 9"
-                                        }
-
-                                        email.isBlank() -> {
-                                            animated = false
-                                            emailError = true
-                                            emailErrorText = "Эл.почта должен быть заполнено"
-                                        }
-
-                                        password.isBlank() -> {
-                                            animated = false
-                                            passwordError = true
-                                            passwordErrorText = "Пароль должен быть заполнено"
-                                        }
-                                    }
-                                }
-                            } else {
-                                animated = false
-                            }
-
+                            animated = true
+                            authViewModel.onEvent(RegistrationFormEvent.Registration)
                         },
                         shape = RoundedCornerShape(10),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -663,7 +541,16 @@ fun RegistrationScreen(
                         fontSize = 14.sp
                     )
                     TextButton(modifier = Modifier.padding(start = 8.dp), onClick = {
+                        authViewModel.state = authViewModel.state.copy(
+                            firstNameError = null,
+                            lastNameError = null,
+                            phoneNumberError = null,
+                            emailError = null,
+                            ageError = null,
+                            passwordError = null
+                        )
                         navController.navigate(ScreensRoute.AuthorizationScreen.route)
+
                     }) {
                         Text(
                             text = stringResource(id = R.string.authorization),
@@ -677,14 +564,22 @@ fun RegistrationScreen(
 
 
     }
-BackHandler {
-    val activity = context as Activity
-    activity.startActivity(
-        Intent(
-            context,
-            MainActivity::class.java
+    BackHandler {
+        authViewModel.state = authViewModel.state.copy(
+            firstNameError = null,
+            lastNameError = null,
+            phoneNumberError = null,
+            emailError = null,
+            ageError = null,
+            passwordError = null
         )
-    )
-    activity.finish()
-}
+        val activity = context as Activity
+        activity.startActivity(
+            Intent(
+                context,
+                MainActivity::class.java
+            )
+        )
+        activity.finish()
+    }
 }

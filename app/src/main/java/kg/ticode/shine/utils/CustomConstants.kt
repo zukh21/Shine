@@ -9,4 +9,11 @@ object CustomConstants {
     lateinit var AUTH: FirebaseAuth
     const val BUTTONS_CORNER_ROUND = 12
     const val BOTTOM_APP_BAR_HEIGHT = 64
+    const val REGISTRATION_TEXT_FIELDS_ERROR_SIZE = 12
+    const val CIRCULAR_PROGRESS_SIZE = 64
+    const val TOP_BAR_TITLE_SIZE = 18
+    const val CHANNEL_ID = "REMOTE"
+    const val REF_FCM = "REF_FCM"
+    const val REF_FCM_TOKEN_KEY = "TOKEN"
+    const val FIREBASE_REALTIME_DATABASE_TOKEN_KEY = "push_tokens"
 }

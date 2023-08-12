@@ -1,12 +1,13 @@
-package kg.ticode.shine.utils
+package kg.ticode.shine.model
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.ui.graphics.vector.ImageVector
 import kg.ticode.shine.navigation.ScreensRoute
 import kg.ticode.shine.utils.CustomConstants.BOTTOM_APP_BAR_ICONS_SIZE
@@ -16,8 +17,7 @@ sealed class BottomAppBarButtonsModel(
     val activeIcon: ImageVector,
     val icon: ImageVector,
     val iconSize: Int,
-    val route: ScreensRoute,
-    iconImage: String? = null
+    val route: ScreensRoute
 ) {
     object Home : BottomAppBarButtonsModel(
         "Home",
@@ -27,12 +27,12 @@ sealed class BottomAppBarButtonsModel(
         ScreensRoute.MainScreen
     )
 
-    object Notifications : BottomAppBarButtonsModel(
-        "Notifications",
-        Icons.Filled.Notifications,
-        Icons.Outlined.Notifications,
+    object Favorites : BottomAppBarButtonsModel(
+        "Favorites",
+        Icons.Filled.Favorite,
+        Icons.Outlined.FavoriteBorder,
         BOTTOM_APP_BAR_ICONS_SIZE,
-        ScreensRoute.NotificationsScreen
+        ScreensRoute.CarFavoriteScreen
     )
 
     object Profile : BottomAppBarButtonsModel(
@@ -40,7 +40,6 @@ sealed class BottomAppBarButtonsModel(
         Icons.Filled.AccountCircle,
         Icons.Outlined.AccountCircle,
         BOTTOM_APP_BAR_ICONS_SIZE,
-        ScreensRoute.ProfileScreen,
-        "https://cdn.dribbble.com/users/2530857/screenshots/5448238/immamul-day-2.png"
+        ScreensRoute.ProfileScreen
     )
 }
